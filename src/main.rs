@@ -29,5 +29,6 @@ fn read_csv<P: AsRef<Path>>(path: P) -> PolarResult<DataFrame> {
 fn main() {
     let file_path = "../data/palmerpenguins.csv";
     let df: DataFrame = read_csv(file_path).unwrap();
-    println!("{:?}", df);
+    let df_null_removed: DataFrame = df.drop_nulls(None).unwrap();
+    println!("{:?}", df_null_removed.null_count());
 }
