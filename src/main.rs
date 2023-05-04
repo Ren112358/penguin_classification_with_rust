@@ -14,6 +14,16 @@ fn read_csv<P: AsRef<Path>>(path: P, schema: Schema) -> PolarResult<DataFrame> {
         .finish()
 }
 
+fn select_feature_label(
+    df: &DataFrame,
+    feature_columns: &Vec<&str>,
+    label_columns: &Vec<&str>
+    ) -> (PolarResult<DataFrame>, PolarResult<DataFrame>) {
+    let features = df.select(feature_columns);
+    let labels = df.select(label_columns);
+    return (features, labels)
+}
+
 fn main() {
     let file_path = "../data/palmerpenguins.csv";
     // The schema below is specific to palmerpenguins dataset
@@ -32,12 +42,20 @@ fn main() {
     ]);
 
     let df: DataFrame = read_csv(file_path, schema).unwrap();
-    //println!("{:?}", df);
 
     // Confirmed there exist rows including null by the following:
     // println!("{:?}", df.null_count());
     // Therefore, drop the rows including null.
     let df_null_dropped: DataFrame = df.drop_nulls(None).unwrap();
-    println!("{:?}", df_null_dropped);
-    println!("{:?}", df_null_dropped.null_count());
+
+    // select features and labels from dataset
+    let feature_columns = vec![
+        "bill_length_mm",
+        "bill_depth_mm",
+        "flipper_length_mm",
+        "body_mass_g"];
+    let label_columns = vec!["species"];
+    let (features, labels) = select_feature_label(&df_null_dropped, &feature_columns, &label_columns);
+    println!("{:?}", features);
+    println!("{:?}", labels);
 }
