@@ -5,7 +5,17 @@ use polars::prelude::*;
 use polars::frame::DataFrame;
 use polars::prelude::Result as PolarResult;
 
-fn read_csv<P: AsRef<Path>>(path: P) -> PolarResult<DataFrame> {
+fn read_csv<P: AsRef<Path>>(path: P, schema: Schema) -> PolarResult<DataFrame> {
+    let file = File::open(path).expect("Cannot open file.");
+    CsvReader::new(file)
+        .with_schema(Arc::new(schema))
+        .has_header(true)
+        .with_ignore_parser_errors(true)
+        .finish()
+}
+
+fn main() {
+    let file_path = "../data/palmerpenguins.csv";
     // The schema below is specific to palmerpenguins dataset
     // URL: https://allisonhorst.github.io/palmerpenguins/
     let schema = Schema::new(vec![
@@ -17,18 +27,7 @@ fn read_csv<P: AsRef<Path>>(path: P) -> PolarResult<DataFrame> {
         Field::new("body_mass_g", DataType::Float64),
         Field::new("sex", DataType::Utf8)
     ]);
-
-    let file = File::open(path).expect("Cannot open file.");
-    CsvReader::new(file)
-        .with_schema(Arc::new(schema))
-        .has_header(true)
-        .with_ignore_parser_errors(true)
-        .finish()
-}
-
-fn main() {
-    let file_path = "../data/palmerpenguins.csv";
-    let df: DataFrame = read_csv(file_path).unwrap();
+    let df: DataFrame = read_csv(file_path, schema).unwrap();
     let df_null_removed: DataFrame = df.drop_nulls(None).unwrap();
-    println!("{:?}", df_null_removed.null_count());
+    println!("{:?}", df);
 }
