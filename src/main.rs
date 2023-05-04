@@ -18,16 +18,21 @@ fn main() {
     let file_path = "../data/palmerpenguins.csv";
     // The schema below is specific to palmerpenguins dataset
     // URL: https://allisonhorst.github.io/palmerpenguins/
+    // URL: https://cran.r-project.org/web/packages/palmerpenguins/readme/README.html
     let schema = Schema::new(vec![
+        Field::new("rowid", DataType::Utf8),
         Field::new("species", DataType::Utf8),
         Field::new("island", DataType::Utf8),
-        Field::new("culmen_length_mm", DataType::Float64),
-        Field::new("culmen_depth_mm", DataType::Float64),
+        Field::new("bill_length_mm", DataType::Float64),
+        Field::new("bill_depth_mm", DataType::Float64),
         Field::new("flipper_length_mm", DataType::Float64),
         Field::new("body_mass_g", DataType::Float64),
-        Field::new("sex", DataType::Utf8)
+        Field::new("sex", DataType::Utf8),
+        Field::new("year", DataType::Utf8)
     ]);
+
     let df: DataFrame = read_csv(file_path, schema).unwrap();
-    let df_null_removed: DataFrame = df.drop_nulls(None).unwrap();
     println!("{:?}", df);
+    //let df_null_removed: DataFrame = df.drop_nulls(None).unwrap();
+    //println!("{:?}", df_null_removed);
 }
