@@ -32,7 +32,12 @@ fn main() {
     ]);
 
     let df: DataFrame = read_csv(file_path, schema).unwrap();
-    println!("{:?}", df);
-    //let df_null_removed: DataFrame = df.drop_nulls(None).unwrap();
-    //println!("{:?}", df_null_removed);
+    //println!("{:?}", df);
+
+    // Confirmed there exist rows including null by the following:
+    // println!("{:?}", df.null_count());
+    // Therefore, drop the rows including null.
+    let df_null_dropped: DataFrame = df.drop_nulls(None).unwrap();
+    println!("{:?}", df_null_dropped);
+    println!("{:?}", df_null_dropped.null_count());
 }
