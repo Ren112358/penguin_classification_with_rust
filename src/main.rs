@@ -4,6 +4,8 @@ use std::path::Path;
 use polars::prelude::*;
 use polars::frame::DataFrame;
 use polars::prelude::Result as PolarResult;
+use smartcore::linalg::naive::dense_matrix::DenseMatrix;
+use smartcore::linalg::BaseMatrix;
 
 fn read_csv<P: AsRef<Path>>(path: P, schema: Schema) -> PolarResult<DataFrame> {
     let file = File::open(path).expect("Cannot open file.");
@@ -22,6 +24,33 @@ fn select_feature_label(
     let features = df.select(feature_columns);
     let labels = df.select(label_columns);
     return (features, labels)
+}
+
+pub fn convert_features_into_matrix(df: &DataFrame) -> Result<DenseMatrix<f64>> {
+    let num_rows = df.height();
+    let num_cols = df.width();
+
+    let features_array = df.to_ndarray::<Float64Type>().unwrap();
+    let mut matrix: DenseMatrix<f64> = BaseMatrix::zeros(num_rows, num_cols);
+    let mut col: u32 = 0;
+    let mut row: u32 = 0;
+
+    for val in features_array.iter() {
+        let m_row = usize::try_from(row).unwrap();
+        let m_col = usize::try_from(col).unwrap();
+        matrix.set(m_row, m_col, *val);
+
+        // Since we cannot apply "%" operator for usize in Rust,
+        // We need update indices as below
+        if m_col == num_cols - 1 {
+            row += 1;
+            col = 0;
+        } else {
+            col += 1;
+        }
+    }
+
+    Ok(matrix)
 }
 
 fn main() {
@@ -56,6 +85,7 @@ fn main() {
         "body_mass_g"];
     let label_columns = vec!["species"];
     let (features, labels) = select_feature_label(&df_null_dropped, &feature_columns, &label_columns);
-    println!("{:?}", features);
-    println!("{:?}", labels);
+
+    let X = convert_features_into_matrix(&features.unwrap());
+    println!("{:?}", X);
 }
