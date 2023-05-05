@@ -6,6 +6,9 @@ use polars::frame::DataFrame;
 use polars::prelude::Result as PolarResult;
 use smartcore::linalg::naive::dense_matrix::DenseMatrix;
 use smartcore::linalg::BaseMatrix;
+use smartcore::linear::logistic_regression::LogisticRegression;
+use smartcore::metrics::accuracy;
+use smartcore::model_selection::train_test_split;
 
 fn read_csv<P: AsRef<Path>>(path: P, schema: Schema) -> PolarResult<DataFrame> {
     let file = File::open(path).expect("Cannot open file.");
@@ -26,7 +29,7 @@ fn select_feature_label(
     return (features, labels)
 }
 
-pub fn convert_features_into_matrix(df: &DataFrame) -> Result<DenseMatrix<f64>> {
+fn convert_features_into_matrix(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     let num_rows = df.height();
     let num_cols = df.width();
 
@@ -51,6 +54,26 @@ pub fn convert_features_into_matrix(df: &DataFrame) -> Result<DenseMatrix<f64>> 
     }
 
     Ok(matrix)
+}
+
+// The function below is specific to palmer penguins classification
+fn str_to_num(str_val: &Series) -> Series {
+    str_val
+        .utf8()
+        .unwrap()
+        .into_iter()
+        .map(|opt_name: Option<&str>| {
+            opt_name.map(|name: &str| {
+                match name {
+                    "Adelie" => 1,
+                    "Chinstrap" => 2,
+                    "Gentoo" => 3,
+                    _ => panic!("Problem species str to num"),
+                }
+            })
+        })
+        .collect::<UInt32Chunked>()
+        .into_series()
 }
 
 fn main() {
@@ -86,6 +109,29 @@ fn main() {
     let label_columns = vec!["species"];
     let (features, labels) = select_feature_label(&df_null_dropped, &feature_columns, &label_columns);
 
-    let X = convert_features_into_matrix(&features.unwrap());
-    println!("{:?}", X);
+    let x = convert_features_into_matrix(&features.unwrap()).unwrap();
+
+    // encode species column into class label
+    let label_array = labels
+        .unwrap()
+        .apply("species", str_to_num)
+        .unwrap()
+        .to_ndarray::<Float64Type>()
+        .unwrap();
+
+    // create a label vector to apply this to train test split
+    let mut y: Vec<f64> = Vec::new();
+    for val in label_array.iter() {
+        y.push(*val);
+    }
+
+    // train test split
+    let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.3, true);
+
+    // fitting with logistic regression
+    let reg = LogisticRegression::fit(&x_train, &y_train, Default::default()).unwrap();
+
+    // evaluate model with test data
+    let preds = reg.predict(&x_test).unwrap();
+    println!("accuracy : {}", accuracy(&y_test, &preds));
 }
