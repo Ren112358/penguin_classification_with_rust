@@ -26,7 +26,7 @@ fn select_feature_label(
     return (features, labels)
 }
 
-pub fn convert_features_into_matrix(df: &DataFrame) -> Result<DenseMatrix<f64>> {
+fn convert_features_into_matrix(df: &DataFrame) -> Result<DenseMatrix<f64>> {
     let num_rows = df.height();
     let num_cols = df.width();
 
@@ -87,5 +87,5 @@ fn main() {
     let (features, labels) = select_feature_label(&df_null_dropped, &feature_columns, &label_columns);
 
     let X = convert_features_into_matrix(&features.unwrap());
-    println!("{:?}", X);
+    let y = labels.unwrap().to_dummies();
 }
